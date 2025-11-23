@@ -5,8 +5,15 @@ const N8N_WEBHOOK_URL = "http://localhost:5678/webhook/signalGenerator";
 
 // ============ N8N API CALL ============
 const callN8N = async (payload) => {
+  // Add exchange suffix to tickers if not already present
+  const tickers = payload.tickers.split(',').map(t => {
+    const trimmed = t.trim().toUpperCase();
+    if (trimmed.includes('.')) return trimmed; // Already has suffix
+    return `${trimmed}.${payload.exchange}`; // Add exchange suffix
+  }).join(', ');
+
   const n8nPayload = {
-    "Ticker ": payload.tickers,
+    "Ticker ": tickers,
     "Time Horizon": payload.timeHorizon,
     "Risk Tolerance": payload.riskTolerance,
     "Output Format": payload.format
@@ -18,14 +25,47 @@ const callN8N = async (payload) => {
   });
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
   const data = await response.json();
-  // Handle n8n response formats:
-  // 1. Array containing object with results: [{ results: [...] }]
+  
+  // Handle n8n response formats
+  let result;
   if (Array.isArray(data)) {
-    if (data[0]?.results) return data[0];
-    return { results: data };
+    result = data[0]?.results ? data[0] : { results: data };
+  } else if (data.results) {
+    result = data;
+  } else {
+    result = { results: [data] };
   }
-  if (data.results) return data;
-  return { results: [data] };
+  
+  // Validate each result for invalid symbols
+  if (result.results) {
+    result.results = result.results.map(r => {
+      // Check if there's an error in the response
+      if (r.error) {
+        return { ...r, isInvalid: true, invalidReason: r.details || r.error };
+      }
+      // Check for mutual fund or invalid instrument type (from raw price data if available)
+      if (r.Price_Data?.chart?.result?.[0]?.meta) {
+        const meta = r.Price_Data.chart.result[0].meta;
+        if (meta.instrumentType === 'MUTUALFUND') {
+          return { 
+            ...r, 
+            isInvalid: true, 
+            invalidReason: `"${r.symbol || meta.symbol}" is a mutual fund, not a stock. For State Bank of India, use SBIN instead of SBI.`
+          };
+        }
+        if (meta.exchangeName === 'YHD' || !meta.currency) {
+          return { 
+            ...r, 
+            isInvalid: true, 
+            invalidReason: `"${r.symbol || meta.symbol}" is not a valid NSE/BSE stock symbol. Please check the ticker name.`
+          };
+        }
+      }
+      return r;
+    });
+  }
+  
+  return result;
 };
 
 // ============ STYLES ============
@@ -60,6 +100,7 @@ export default function SignalUI() {
   const [format, setFormat] = useState('Detailed');
   const [timeH, setTimeH] = useState('Medium-term');
   const [riskT, setRiskT] = useState('Moderate');
+  const [exchange, setExchange] = useState('NS');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [valErr, setValErr] = useState('');
@@ -74,7 +115,7 @@ export default function SignalUI() {
     if (!input.trim()) { setValErr('Enter at least one ticker'); return; }
     setLoading(true); setData(null);
     try {
-      const res = await callN8N({ tickers: input, format, timeHorizon: timeH, riskTolerance: riskT });
+      const res = await callN8N({ tickers: input, format, timeHorizon: timeH, riskTolerance: riskT, exchange });
       if (res?.results) { setData(res); if (res.results[0]) setExpanded(res.results[0].symbol); }
     } catch (e) { setError(e.message); setToast(e.message); }
     setLoading(false);
@@ -182,12 +223,14 @@ export default function SignalUI() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
             <div style={{ gridColumn: 'span 2' }}>
               <label style={S.label}>Tickers</label>
-              <input style={{ ...S.input, borderColor: valErr ? '#ef4444' : '#d1fae5' }} value={input} onChange={e => setInput(e.target.value)} placeholder="RELIANCE, TCS, INFY" />
+              <input style={{ ...S.input, borderColor: valErr ? '#ef4444' : '#d1fae5' }} value={input} onChange={e => setInput(e.target.value)} placeholder="RELIANCE, TCS, SBIN, INFY" />
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Use NSE symbols (e.g., SBIN for SBI, HDFCBANK for HDFC)</div>
               {valErr && <div style={S.err}>{valErr}</div>}
             </div>
             <div><label style={S.label}>Format</label><select style={S.select} value={format} onChange={e => setFormat(e.target.value)}><option>Detailed</option><option>Compact</option></select></div>
             <div><label style={S.label}>Horizon</label><select style={S.select} value={timeH} onChange={e => setTimeH(e.target.value)}><option>Short-term</option><option>Medium-term</option><option>Long-term</option></select></div>
             <div><label style={S.label}>Risk</label><select style={S.select} value={riskT} onChange={e => setRiskT(e.target.value)}><option>Conservative</option><option>Moderate</option><option>Aggressive</option></select></div>
+            <div><label style={S.label}>Exchange</label><select style={S.select} value={exchange} onChange={e => setExchange(e.target.value)}><option value="NS">NSE (India)</option><option value="BO">BSE (India)</option></select></div>
           </div>
           <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <button style={S.btn} onClick={run} disabled={loading}>{loading ? '⏳ Analyzing...' : '🚀 Run Analysis'}</button>
@@ -204,16 +247,41 @@ export default function SignalUI() {
           <div style={S.card}>
             {isCompact ? <Compact /> : results.map(r => (
               <div key={r.symbol} style={S.acc}>
-                <div style={S.accH} onClick={() => setExpanded(expanded === r.symbol ? null : r.symbol)}>
+                <div style={{ ...S.accH, background: r.isInvalid ? '#fef2f2' : '#ecfdf5' }} onClick={() => setExpanded(expanded === r.symbol ? null : r.symbol)}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <strong>{r.symbol}</strong>
-                    <span style={{ color: '#6b7280' }}>₹{r.current_price}</span>
-                    <span style={S.badge(r.signal)}>{r.signal}</span>
-                    <span style={{ fontSize: 13 }}>{Math.round(r.confidence * 100)}% confidence</span>
+                    {r.isInvalid ? (
+                      <span style={{ color: '#dc2626', fontSize: 13 }}>❌ Invalid Symbol</span>
+                    ) : (
+                      <>
+                        <span style={{ color: '#6b7280' }}>₹{r.current_price}</span>
+                        <span style={S.badge(r.signal)}>{r.signal}</span>
+                        <span style={{ fontSize: 13 }}>{Math.round(r.confidence * 100)}% confidence</span>
+                      </>
+                    )}
                   </div>
                   <span>{expanded === r.symbol ? '▼' : '▶'}</span>
                 </div>
-                {expanded === r.symbol && <Detailed r={r} />}
+                {expanded === r.symbol && (
+                  r.isInvalid ? (
+                    <div style={{ padding: 16, background: '#fef2f2', borderTop: '1px solid #fecaca' }}>
+                      <div style={{ color: '#991b1b', marginBottom: 12 }}>
+                        <strong>⚠️ Symbol Error:</strong> {r.invalidReason}
+                      </div>
+                      <div style={{ fontSize: 13, color: '#6b7280' }}>
+                        <strong>Common NSE Symbol Tips:</strong>
+                        <ul style={{ margin: '8px 0', paddingLeft: 20 }}>
+                          <li>State Bank of India → <strong>SBIN</strong> (not SBI)</li>
+                          <li>HDFC Bank → <strong>HDFCBANK</strong> (not HDFC)</li>
+                          <li>ICICI Bank → <strong>ICICIBANK</strong> (not ICICI)</li>
+                        </ul>
+                        <a href="https://www.nseindia.com/market-data/live-equity-market" target="_blank" rel="noopener noreferrer" style={{ color: '#047857' }}>
+                          🔗 Find correct symbols on NSE website
+                        </a>
+                      </div>
+                    </div>
+                  ) : <Detailed r={r} />
+                )}
               </div>
             ))}
             <div style={S.disc}>⚠️ <strong>Disclaimer:</strong> {data?.disclaimer || "This analysis is not investment advice. Not SEBI-registered. For educational purposes only."}</div>
