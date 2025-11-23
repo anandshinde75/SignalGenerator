@@ -88,7 +88,8 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
   }).join(',');
 
   // Using proxy - add "proxy": "http://localhost:5678" to package.json
-  const url = `/webhook/signalGenerator`;
+  // const url = `/webhook/signalGenerator`;
+     const url = `https://anandshinde75.app.n8n.cloud/webhook/signalGenerator`;
 
   const requestBody = {
     "Ticker ": tickers,
