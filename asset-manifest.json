@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/SignalGenerator/static/css/main.f855e6bc.css",
+    "main.js": "/SignalGenerator/static/js/main.8534c00e.js",
+    "static/js/453.0bc06565.chunk.js": "/SignalGenerator/static/js/453.0bc06565.chunk.js",
+    "index.html": "/SignalGenerator/index.html",
+    "main.f855e6bc.css.map": "/SignalGenerator/static/css/main.f855e6bc.css.map",
+    "main.8534c00e.js.map": "/SignalGenerator/static/js/main.8534c00e.js.map",
+    "453.0bc06565.chunk.js.map": "/SignalGenerator/static/js/453.0bc06565.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f855e6bc.css",
+    "static/js/main.8534c00e.js"
+  ]
+}
