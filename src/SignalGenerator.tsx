@@ -197,14 +197,14 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
 
 // ============ STYLES ============
 const S = {
-  container: { maxWidth: 1200, margin: '0 auto', padding: '24px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', background: 'linear-gradient(to bottom, #ecfdf5, #ffffff)', minHeight: '100vh' },
+  container: { maxWidth: 1200, margin: '0 auto', padding: '24px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', background: 'linear-gradient(to bottom, #ecfdf5, #ffffff)', minHeight: '100vh',width: '100%', boxSizing: 'border-box' },
   header: { background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)', borderRadius: 16, padding: '32px 24px', marginBottom: 24, boxShadow: '0 10px 30px rgba(5, 150, 105, 0.2)' },
   h1: { fontSize: 36, fontWeight: 800, color: 'white', marginBottom: 8, textAlign: 'center' as const, letterSpacing: '-0.5px' },
   subtitle: { fontSize: 16, color: '#d1fae5', textAlign: 'center' as const, fontWeight: 500 },
   disclaimer: { background: '#fef3c7', border: '2px solid #fbbf24', borderRadius: 12, padding: 16, marginBottom: 24, display: 'flex', alignItems: 'start', gap: 12 },
   disclaimerIcon: { fontSize: 24, flexShrink: 0 },
   disclaimerText: { fontSize: 13, lineHeight: 1.6, color: '#78350f' },
-  card: { background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #d1fae5' },
+  card: { background: 'white', borderRadius: 16, padding: 28, boxShadow: '0 4px 20px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #d1fae5',width: '100%', boxSizing: 'border-box' },
   label: { display: 'block', fontSize: 14, fontWeight: 600, color: '#047857', marginBottom: 8, letterSpacing: '0.3px' },
   input: { width: '100%', padding: '12px 16px', border: '2px solid #d1fae5', borderRadius: 10, fontSize: 15, outline: 'none', boxSizing: 'border-box' as const, transition: 'all 0.2s', fontFamily: 'inherit' },
   select: { width: '100%', padding: '12px 16px', border: '2px solid #d1fae5', borderRadius: 10, fontSize: 15, outline: 'none', background: 'white', cursor: 'pointer', boxSizing: 'border-box' as const, transition: 'all 0.2s', fontFamily: 'inherit' },
@@ -221,7 +221,7 @@ const S = {
   badge: (s: string) => ({ padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, background: s === 'BUY' ? '#10b981' : s === 'SELL' ? '#ef4444' : '#f59e0b', color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.1)', letterSpacing: '0.5px' }),
   th: { background: '#047857', padding: 14, textAlign: 'left' as const, fontWeight: 600, color: 'white', fontSize: 13, letterSpacing: '0.5px', textTransform: 'uppercase' as const },
   td: { padding: 14, borderBottom: '1px solid #e5e7eb', fontSize: 14 },
-  section: { marginTop: 16, padding: 20, background: '#ecfdf5', borderRadius: 12, border: '2px solid #a7f3d0' },
+  section: { marginTop: 16, padding: 20, background: '#ecfdf5', borderRadius: 12, border: '2px solid #a7f3d0', width: '100%', boxSizing: 'border-box' },
   secTitle: { fontSize: 16, fontWeight: 700, color: '#047857', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',  gap: 16},
   summary: { background: 'linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%)', border: '2px solid #fbbf24', borderRadius: 12, padding: 16, fontSize: 14, color: '#78350f', lineHeight: 1.6, marginTop: 16 },
