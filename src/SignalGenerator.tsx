@@ -451,7 +451,7 @@ const Compact = () => (
 
       <div style={S.card}>
         <div style={S.grid}>
-          <div style={{ gridColumn: 'span 2' }}>
+          <div style={{ gridColumn: '1 / -1' }}>
             <label style={S.label}>Tickers</label>
             <input style={{ ...S.input, borderColor: valErr ? '#ef4444' : '#d1fae5' }} value={input} onChange={e => setInput(e.target.value)} placeholder="RELIANCE, TCS, SBIN, INFY" />
             <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Use NSE symbols (e.g., SBIN for SBI, HDFCBANK for HDFC)</div>
