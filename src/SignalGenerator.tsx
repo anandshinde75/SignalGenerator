@@ -223,7 +223,7 @@ const S = {
   td: { padding: 14, borderBottom: '1px solid #e5e7eb', fontSize: 14 },
   section: { marginTop: 16, padding: 20, background: '#ecfdf5', borderRadius: 12, border: '2px solid #a7f3d0' },
   secTitle: { fontSize: 16, fontWeight: 700, color: '#047857', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',  gap: 16},
   summary: { background: 'linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%)', border: '2px solid #fbbf24', borderRadius: 12, padding: 16, fontSize: 14, color: '#78350f', lineHeight: 1.6, marginTop: 16 },
   invalid: { background: 'linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%)', border: '2px solid #fca5a5', borderRadius: 12, padding: 20, color: '#991b1b' },
   footer: { textAlign: 'center' as const, fontSize: 13, color: '#6b7280', marginTop: 32, padding: '20px 0', borderTop: '1px solid #d1fae5' }
