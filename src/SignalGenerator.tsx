@@ -83,77 +83,117 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
   // Add exchange suffix to tickers if not already present
   const tickers = payload.tickers.split(',').map((t: string) => {
     const trimmed = t.trim().toUpperCase();
-    if (trimmed.includes('.')) return trimmed; // Already has suffix
-    return `${trimmed}.${payload.exchange}`; // Add exchange suffix
+    if (trimmed.includes('.')) return trimmed;
+    return `${trimmed}.${payload.exchange}`;
   }).join(',');
 
-  // Using proxy - add "proxy": "http://localhost:5678" to package.json
-  // const url = `/webhook/signalGenerator`;
-     const url = `https://anandshinde75.app.n8n.cloud/webhook/signalGenerator`;
+  const primaryUrl = `https://anandshinde75.app.n8n.cloud/webhook/signalGenerator`;
+  const fallbackUrl = `/webhook/signalGenerator`;
 
   const requestBody = {
     "Ticker ": tickers,
     "Time Horizon": payload.timeHorizon,
     "Risk Tolerance": payload.riskTolerance,
-    "Output Format": payload.format
+    "Output Format": "Detailed"
   };
 
   console.log("Sending to n8n:", requestBody);
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  });
+  const urls = [primaryUrl, fallbackUrl];
+  let lastError: Error | null = null;
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('Response status:', res.status);
-    console.error('Response text:', errorText);
-    throw new Error(`HTTP ${res.status}: ${errorText || 'Failed to fetch data'}`);
-  }
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    console.log(`Attempting ${i === 0 ? 'primary' : 'fallback'} URL: ${url}`);
 
-  const responseText = await res.text();
-  console.log('Raw response:', responseText);
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
 
-  if (!responseText || responseText.trim() === '') {
-    throw new Error('Empty response from webhook. Make sure your n8n workflow returns data.');
-  }
-
-  let result: ApiResponse;
-  try {
-    const parsed = JSON.parse(responseText);
-    console.log('Parsed response:', parsed);
-    
-    // n8n returns data wrapped in an array, extract the first element
-    result = Array.isArray(parsed) ? parsed[0] : parsed;
-    console.log('Extracted result:', result);
-  } catch (parseError) {
-    console.error('Failed to parse JSON:', responseText);
-    throw new Error('Invalid JSON response from webhook. Check your n8n workflow output.');
-  }
-
-  // Validate each result for invalid symbols
-  if (result.results) {
-    result.results = result.results.map((r: Result) => {
-      // Check if there's an error in the response
-      if (r.error) {
-        return { ...r, isInvalid: true, invalidReason: r.details || r.error };
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Response status from ${url}:`, res.status);
+        console.error('Response text:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText || 'Failed to fetch data'}`);
       }
 
-      // Check if any critical fields are missing or null
-      if (!r.current_price || r.current_price === 0) {
-        return { ...r, isInvalid: true, invalidReason: 'Invalid or delisted symbol - no price data available' };
+      const responseText = await res.text();
+      console.log('Raw response:', responseText);
+
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('Empty response from webhook. Make sure your n8n workflow returns data.');
       }
 
-      return r;
-    });
+      let parsed;
+      try {
+        parsed = JSON.parse(responseText);
+        console.log('Parsed response:', parsed);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', responseText);
+        throw new Error('Invalid JSON response from webhook. Check your n8n workflow output.');
+      }
+
+      // 👇 NEW: Handle error response format [{ "error": "..." }]
+      if (Array.isArray(parsed) && parsed[0]?.error) {
+        const errorMsg = parsed[0].error;
+        const tickerSymbols = tickers.split(',');
+        
+        return {
+          results: tickerSymbols.map(symbol => ({
+            symbol: symbol.trim(),
+            current_price: 0,
+            signal: 'SELL/AVOID' as const,
+            confidence: '0%',
+            entry_price: 0,
+            target_price: 0,
+            stop_loss: 0,
+            isInvalid: true,
+            invalidReason: `Invalid ticker: ${errorMsg}`
+          }))
+        };
+      }
+
+      // Normal response handling
+      let result: ApiResponse = Array.isArray(parsed) ? parsed[0] : parsed;
+      console.log('Extracted result:', result);
+
+      // Validate each result for invalid symbols
+      if (result.results) {
+        result.results = result.results.map((r: Result) => {
+          if (r.error) {
+            return { ...r, isInvalid: true, invalidReason: r.details || r.error };
+          }
+
+          if (!r.current_price || r.current_price === 0) {
+            return { ...r, isInvalid: true, invalidReason: 'Invalid or delisted symbol - no price data available' };
+          }
+
+          return r;
+        });
+      }
+
+      console.log(`✅ Success using ${i === 0 ? 'primary' : 'fallback'} URL`);
+      return result;
+
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown error');
+      console.error(`❌ Failed with ${i === 0 ? 'primary' : 'fallback'} URL:`, lastError.message);
+      
+      if (i < urls.length - 1) {
+        console.log('Trying fallback URL...');
+        continue;
+      }
+    }
   }
 
-  return result;
+  throw lastError || new Error('All endpoints failed');
 };
+
 
 // ============ STYLES ============
 const S = {
@@ -209,6 +249,7 @@ export default function SignalUI() {
   const [toast, setToast] = useState<string | null>(null);
   const [data, setData] = useState<ApiResponse | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 5000); return () => clearTimeout(t); } }, [toast]);
 
@@ -230,22 +271,37 @@ export default function SignalUI() {
   const results = data?.results || [];
   const isCompact = format === 'Compact';
 
-  const Compact = () => (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead><tr>{['Symbol', 'Price', 'Signal', 'Confidence', 'Entry', 'Target', 'SL'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr></thead>
-        <tbody>{results.map((r: Result) => <tr key={r.symbol}>
-          <td style={{ ...S.td, fontWeight: 700 }}>{r.symbol}</td>
-          <td style={S.td}>₹{r.current_price}</td>
-          <td style={S.td}><span style={S.badge(r.signal)}>{r.signal}</span></td>
-          <td style={S.td}>{r.confidence}</td>
-          <td style={S.td}>₹{r.entry_price}</td>
-          <td style={S.td}>₹{r.target_price}</td>
-          <td style={S.td}>₹{r.stop_loss}</td>
-        </tr>)}</tbody>
-      </table>
-    </div>
-  );
+const Compact = () => (
+  <div style={{ overflowX: 'auto' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead>
+        <tr>
+          {['Symbol', 'Price', 'Signal', 'Confidence', 'Entry', 'Target', 'SL'].map(h => 
+            <th key={h} style={S.th}>{h}</th>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        {results.map((r: Result) => {
+          const ts = r.trade_setup || {};  // Access nested trade_setup object
+          
+          return (
+            <tr key={r.symbol}>
+              <td style={{ ...S.td, fontWeight: 700 }}>{r.symbol}</td>
+              <td style={S.td}>₹{r.current_price}</td>
+              <td style={S.td}><span style={S.badge(r.signal)}>{r.signal}</span></td>
+              <td style={S.td}>{r.confidence}</td>
+              <td style={S.td}>{ts.entry_zone || '—'}</td>
+              <td style={S.td}>{ts.target_1 ? `₹${ts.target_1}` : '—'}</td>
+              <td style={S.td}>{ts.stop_loss ? `₹${ts.stop_loss}` : '—'}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+);
+
 
   interface DetailedProps {
     r: Result;
@@ -270,6 +326,11 @@ export default function SignalUI() {
     return (
       <div>
         {r.company_name && <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 12 }}>{r.company_name}</div>}
+                {(r.summary || r.analysis_summary) && (
+	          <div style={S.summary}>
+	            <strong>📝 Analysis Summary:</strong> {r.analysis_summary || r.summary}
+	          </div>
+        )}
         
         <div style={S.grid}>
           <div style={S.section}>
@@ -319,18 +380,74 @@ export default function SignalUI() {
           </div>
         </div>
 
-        {(r.summary || r.analysis_summary) && (
-          <div style={S.summary}>
-            <strong>📝 Analysis Summary:</strong> {r.analysis_summary || r.summary}
-          </div>
-        )}
+
       </div>
     );
   };
 
   return (
     <div style={S.container}>
-      <h1 style={S.h1}>📈 Stock Signal Generator</h1>
+      <div style={S.header}>
+        <h1 style={S.h1}>📈 Stock Signal Generator</h1>
+        <div style={S.subtitle}>AI-Powered NSE/BSE Stock Analysis</div>
+      </div>
+      
+
+
+
+<div style={{ 
+  background: '#fef3c7', 
+  border: '2px solid #fbbf24', 
+  borderRadius: 12, 
+  padding: 12, 
+  marginBottom: 16 
+}}>
+ <div 
+   style={{ 
+     display: 'flex', 
+     alignItems: 'center', 
+     justifyContent: 'center',  // 👈 ADD THIS to center horizontally
+     gap: 8, 
+     cursor: 'pointer',
+     fontSize: 13,
+     fontWeight: 600,
+     color: '#78350f',
+     position: 'relative'  // 👈 ADD THIS for absolute positioning
+   }}
+   onClick={() => setShowDisclaimer(!showDisclaimer)}
+ >
+   <span>⚠️</span>
+   <span>DISCLAIMER</span>
+   <span style={{ 
+     position: 'absolute',  // 👈 CHANGED from marginLeft: 'auto'
+     right: 0,              // 👈 ADD THIS
+     fontSize: 16 
+   }}>
+     {showDisclaimer ? '▲' : '▼'}
+   </span>
+ </div>
+
+  
+  {showDisclaimer && (
+    <div style={{ 
+      fontSize: 11, 
+      lineHeight: 1.5, 
+      color: '#78350f', 
+      marginTop: 8,
+      paddingTop: 8,
+      borderTop: '1px solid #fbbf24'
+    }}>
+      <strong>Educational Purpose Only.</strong> Not investment advice. 
+      <strong> Not SEBI Registered.</strong> Consult a qualified advisor before investing. 
+      <strong> Risk Warning:</strong> Trading involves substantial risk. You are solely responsible for your decisions.
+    </div>
+  )}
+</div>
+
+
+      
+
+
 
       <div style={S.card}>
         <div style={S.grid}>
@@ -341,13 +458,7 @@ export default function SignalUI() {
             {valErr && <div style={S.err}>{valErr}</div>}
           </div>
 
-          <div>
-            <label style={S.label}>Exchange</label>
-            <select style={S.select} value={exchange} onChange={e => setExchange(e.target.value)}>
-              <option value="NS">NSE (India)</option>
-              <option value="BO">BSE (India)</option>
-            </select>
-          </div>
+
 
           <div>
             <label style={S.label}>Format</label>
