@@ -106,7 +106,7 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
     })
     .join(',');
 
-  const primaryUrl = `https://anandshinde75.app.n8n.cloud/webhook/signalGenerator`;
+  const primaryUrl = `https://salubrious-unmagnifying-latoyia.ngrok-free.dev/webhook/signalGenerator`;
   const fallbackUrl = `/webhook/signalGenerator`;
 
   const requestBody = {
@@ -661,7 +661,7 @@ export default function SignalUI() {
           <div style={S.section}>
             <div style={S.secTitle}>📊 Price Overview</div>
             <KV l="Current Price" v={`₹${r.current_price}`} b />
-            <KV l="Date" v={r.price_date} />
+            {/* <KV l="Date" v={r.price_date} /> */}
             <KV l="52W High" v={pl['52_week_high'] ? `₹${pl['52_week_high']}` : null} />
             <KV l="52W Low" v={pl['52_week_low'] ? `₹${pl['52_week_low']}` : null} />
             <KV l="Support" v={pl.support ? `₹${pl.support}` : null} />
@@ -792,14 +792,7 @@ export default function SignalUI() {
             {valErr && <div style={S.err}>{valErr}</div>}
           </div>
 
-          {/* Format Selection */}
-          <div>
-            <label style={S.label}>Format</label>
-            <select style={S.select} value={format} onChange={(e) => setFormat(e.target.value)}>
-              <option>Detailed</option>
-              <option>Compact</option>
-            </select>
-          </div>
+
 
           {/* Time Horizon */}
           <div>
@@ -820,6 +813,16 @@ export default function SignalUI() {
               <option>Aggressive</option>
             </select>
           </div>
+          
+	    {/* Format Selection */}
+	    <div>
+	      <label style={S.label}>Format</label>
+	      <select style={S.select} value={format} onChange={(e) => setFormat(e.target.value)}>
+		<option>Detailed</option>
+		<option>Compact</option>
+	      </select>
+          </div>
+          
         </div>
 
         {/* Submit Button */}
