@@ -155,7 +155,7 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
         throw new Error('Invalid JSON response from webhook. Check your n8n workflow output.');
       }
 
-      // === RESTORED: Handle error response format [{ "error": "..." }] ===
+      // Handle error response format [{ "error": "..." }]
       if (Array.isArray(parsed) && parsed[0]?.error) {
         const errorMsg = parsed[0].error;
         const tickerSymbols = tickers.split(',');
@@ -179,33 +179,18 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
       let result: ApiResponse = Array.isArray(parsed) ? parsed[0] : parsed;
       console.log('Extracted result:', result);
 
-      // === RESTORED: Validate each result for invalid symbols ===
+      // Validate each result for invalid symbols
       if (result.results) {
         result.results = result.results.map((r: Result) => {
-          // Check for explicit error property
           if (r.error) {
-            return { 
-              ...r, 
-              isInvalid: true, 
-              invalidReason: r.details || r.error 
-            };
+            return { ...r, isInvalid: true, invalidReason: r.details || r.error };
           }
 
-          // Check for missing or zero price (delisted/invalid symbol)
           if (!r.current_price || r.current_price === 0) {
             return {
               ...r,
               isInvalid: true,
               invalidReason: 'Invalid or delisted symbol - no price data available',
-            };
-          }
-
-          // Check if symbol contains error indicators
-          if (r.symbol && r.symbol.toLowerCase().includes('error')) {
-            return {
-              ...r,
-              isInvalid: true,
-              invalidReason: 'Symbol lookup failed',
             };
           }
 
@@ -229,7 +214,6 @@ const callN8N = async (payload: Payload): Promise<ApiResponse | null> => {
   throw lastError || new Error('All endpoints failed');
 };
 
-
 // ============================================================================
 // STYLES - Responsive for both mobile (320px+) and desktop
 // ============================================================================
@@ -247,29 +231,29 @@ const S = {
   },
 
   header: {
-    background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
-    borderRadius: 8,
-    padding: '10px 12px',
-    marginBottom: 10,
-    boxShadow: '0 2px 12px rgba(5, 150, 105, 0.12)',
+	  background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
+	  borderRadius: 8,           // Reduced from 12
+	  padding: '10px 12px',      // Reduced from '20px 16px' - much thinner!
+	  marginBottom: 10,          // Reduced from 16
+	  boxShadow: '0 2px 12px rgba(5, 150, 105, 0.12)',
   },
 
   h1: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: 'white',
-    marginBottom: 2,
-    textAlign: 'center' as const,
-    letterSpacing: '-0.3px',
+	  fontSize: 18,              // Reduced from 24
+	  fontWeight: 700,           // Reduced from 800 - slightly lighter
+	  color: 'white',
+	  marginBottom: 2,           // Reduced from 6
+	  textAlign: 'center' as const,
+	  letterSpacing: '-0.3px',
   },
 
   subtitle: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: 'white',
-    marginBottom: 2,
-    textAlign: 'center' as const,
-    letterSpacing: '-0.3px',
+	  fontSize: 18,              // Reduced from 24
+	  fontWeight: 700,           // Reduced from 800 - slightly lighter
+	  color: 'white',
+	  marginBottom: 2,           // Reduced from 6
+	  textAlign: 'center' as const,
+	  letterSpacing: '-0.3px',
   },
 
   card: {
@@ -464,100 +448,6 @@ const S = {
     gap: 6,
   },
 
-  // === NEW: HIGHLIGHTED TRADE SETUP STYLES ===
-  
-  sectionHighlight: {
-    marginTop: 0,
-    padding: 18,
-    background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-    borderRadius: 12,
-    border: '3px solid #10b981',
-    width: '100%',
-    minWidth: 0,
-    boxSizing: 'border-box' as const,
-    overflowWrap: 'break-word' as const,
-    wordBreak: 'break-word' as const,
-    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.3)',
-    position: 'relative' as const,
-    overflow: 'hidden' as const,
-  },
-
-  sectionHighlightSell: {
-    background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-    border: '3px solid #ef4444',
-    boxShadow: '0 6px 20px rgba(239, 68, 68, 0.3)',
-  },
-
-  sectionHighlightHold: {
-    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-    border: '3px solid #f59e0b',
-    boxShadow: '0 6px 20px rgba(245, 158, 11, 0.3)',
-  },
-
-  ribbon: {
-    position: 'absolute' as const,
-    top: 12,
-    right: -32,
-    background: '#10b981',
-    color: 'white',
-    padding: '4px 40px',
-    fontSize: 10,
-    fontWeight: 700,
-    transform: 'rotate(45deg)',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-    letterSpacing: '1px',
-    textTransform: 'uppercase' as const,
-  },
-
-  ribbonSell: {
-    background: '#ef4444',
-  },
-
-  ribbonHold: {
-    background: '#f59e0b',
-  },
-
-  secTitleHighlight: {
-    fontSize: 15,
-    fontWeight: 800,
-    color: '#047857',
-    marginBottom: 14,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.8px',
-  },
-
-  kvHighlight: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    padding: '10px 0',
-    borderBottom: '2px solid #a7f3d0',
-  },
-
-  kvVHighlight: {
-    color: '#065f46',
-    fontSize: 14,
-    textAlign: 'right' as const,
-    fontWeight: 700,
-    overflowWrap: 'break-word' as const,
-    wordBreak: 'break-word' as const,
-    maxWidth: '60%',
-  },
-
-  rrIndicator: {
-    marginTop: 10,
-    padding: '8px 12px',
-    background: 'rgba(16, 185, 129, 0.15)',
-    borderRadius: 8,
-    fontSize: 11,
-    color: '#047857',
-    fontWeight: 700,
-    textAlign: 'center' as const,
-    letterSpacing: '0.5px',
-  },
-
   // Responsive grid: stacks to 1 column on mobile (< 500px), 2 columns on desktop
   grid: {
     display: 'grid',
@@ -608,14 +498,6 @@ const KV: React.FC<KVProps> = ({ l, v, b = false }) => (
   <div style={S.kv}>
     <div style={S.kvL}>{l}</div>
     <div style={{ ...S.kvV, fontWeight: b ? 700 : 400 }}>{v ?? '—'}</div>
-  </div>
-);
-
-// === NEW: Highlighted KV Component ===
-const KVHighlight: React.FC<KVProps> = ({ l, v, b = false }) => (
-  <div style={S.kvHighlight}>
-    <div style={S.kvL}>{l}</div>
-    <div style={{ ...S.kvVHighlight, fontWeight: b ? 800 : 700 }}>{v ?? '—'}</div>
   </div>
 );
 
@@ -703,25 +585,20 @@ export default function SignalUI() {
         </thead>
         <tbody>
           {results.map((r: Result) => {
-            // === ENHANCED: Handle invalid tickers with detailed message ===
+            // Handle invalid tickers
             if (r.isInvalid) {
               return (
                 <tr key={r.symbol} style={{ background: '#fef2f2' }}>
-                  <td style={{ ...S.td, fontWeight: 700, color: '#991b1b' }}>
-                    {r.symbol}
-                  </td>
-                  <td colSpan={6} style={{ ...S.td, color: '#991b1b', fontSize: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>⚠️</span>
-                      <span>{r.invalidReason || 'Invalid or delisted symbol'}</span>
-                    </div>
+                  <td style={{ ...S.td, fontWeight: 700, color: '#991b1b' }}>{r.symbol}</td>
+                  <td colSpan={6} style={{ ...S.td, color: '#991b1b' }}>
+                    ⚠️ {r.invalidReason || 'This symbol may be delisted or invalid'}
                   </td>
                 </tr>
               );
             }
-  
+
             const ts = r.trade_setup || {};
-  
+
             return (
               <tr key={r.symbol}>
                 <td style={{ ...S.td, fontWeight: 700 }}>{r.symbol}</td>
@@ -741,9 +618,8 @@ export default function SignalUI() {
     </div>
   );
 
-
   // ------------------------------------------------------------------------
-  // DETAILED VIEW COMPONENT (WITH HIGHLIGHTED TRADE SETUP)
+  // DETAILED VIEW COMPONENT
   // ------------------------------------------------------------------------
 
   const Detailed: React.FC<DetailedProps> = ({ r }) => {
@@ -752,67 +628,16 @@ export default function SignalUI() {
     const ts = r.trade_setup || {};
     const sc = r.analysis_scores || r.scores || {};
     const ps = r.position_sizing || {};
-  
-    // === ENHANCED: Handle invalid symbols with detailed error ===
+
+    // Handle invalid symbols
     if (r.isInvalid) {
       return (
         <div style={S.invalid}>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 24 }}>⚠️</span>
-            <span>Invalid Symbol: {r.symbol}</span>
-          </div>
-          <div style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
-            {r.invalidReason || 'This symbol may be delisted, invalid, or not found on the exchange.'}
-          </div>
-          <div style={{ 
-            fontSize: 11, 
-            background: 'rgba(153, 27, 27, 0.1)', 
-            padding: 10, 
-            borderRadius: 6,
-            lineHeight: 1.5
-          }}>
-            <strong>Common Issues:</strong>
-            <ul style={{ margin: '6px 0 0 0', paddingLeft: 20 }}>
-              <li>Symbol may be delisted or suspended</li>
-              <li>Check if you're using the correct NSE symbol (e.g., SBIN not SBI)</li>
-              <li>Verify the symbol exists on NSE India</li>
-              <li>Some symbols require .NS or .BO suffix</li>
-            </ul>
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>⚠️ Invalid Symbol</div>
+          <div>{r.invalidReason || 'This symbol may be delisted or invalid'}</div>
         </div>
       );
     }
-  
-    // === NEW: Determine Trade Setup Style Based on Signal ===
-    const getTradeSetupStyle = () => {
-      const baseStyle = { ...S.sectionHighlight };
-      
-      if (r.signal === 'SELL' || r.signal === 'SELL/AVOID') {
-        return { ...baseStyle, ...S.sectionHighlightSell };
-      } else if (r.signal === 'HOLD') {
-        return { ...baseStyle, ...S.sectionHighlightHold };
-      }
-      
-      return baseStyle; // BUY (default green)
-    };
-
-    const getRibbonStyle = () => {
-      const baseStyle = { ...S.ribbon };
-      
-      if (r.signal === 'SELL' || r.signal === 'SELL/AVOID') {
-        return { ...baseStyle, ...S.ribbonSell };
-      } else if (r.signal === 'HOLD') {
-        return { ...baseStyle, ...S.ribbonHold };
-      }
-      
-      return baseStyle; // BUY
-    };
-
-    const getRibbonText = () => {
-      if (r.signal === 'BUY') return 'ACTIONABLE';
-      if (r.signal === 'SELL' || r.signal === 'SELL/AVOID') return 'EXIT';
-      return 'WATCH';
-    };
 
     return (
       <div>
@@ -832,45 +657,11 @@ export default function SignalUI() {
 
         {/* Data Grid */}
         <div style={S.grid}>
-           
-          {/* === HIGHLIGHTED TRADE SETUP CARD === */}
-          <div style={getTradeSetupStyle()}>
-            {/* Ribbon Badge */}
-            <div style={getRibbonStyle()}>
-              {getRibbonText()}
-            </div>
-            
-            <div style={S.secTitleHighlight}>
-              ⚖️ TRADE SETUP {r.signal === 'BUY' ? '🚀' : r.signal === 'SELL' || r.signal === 'SELL/AVOID' ? '⚠️' : '👀'}
-            </div>
-            
-            <KVHighlight l="Entry Zone" v={ts.entry_zone} />
-            <KVHighlight l="Target 1" v={ts.target_1 ? `₹${ts.target_1}` : null} />
-            <KVHighlight l="Target 2" v={ts.target_2 ? `₹${ts.target_2}` : null} />
-            <KVHighlight l="Stop Loss" v={ts.stop_loss ? `₹${ts.stop_loss}` : null} />
-            <KVHighlight l="Risk/Reward" v={ts.risk_reward_ratio ? `${ts.risk_reward_ratio}:1` : null} b />
-            
-            {/* Risk/Reward Indicator */}
-            {ts.risk_reward_ratio && ts.risk_reward_ratio >= 2 && (
-              <div style={S.rrIndicator}>
-                ✓ FAVORABLE RISK/REWARD RATIO
-              </div>
-            )}
-          </div>
-          
-          {/* Analysis Scores */}
-          <div style={S.section}>
-            <div style={S.secTitle}>🎯 Analysis Scores</div>
-            <KV l="Technical" v={sc.technical ? `${sc.technical}/10` : null} />
-            <KV l="Fundamental" v={sc.fundamental ? `${sc.fundamental}/10` : null} />
-            <KV l="Sentiment" v={sc.sentiment ? `${sc.sentiment}/10` : null} />
-            <KV l="Total Score" v={sc.total ? `${sc.total}/30` : null} b />
-          </div>
-        
           {/* Price Overview */}
           <div style={S.section}>
             <div style={S.secTitle}>📊 Price Overview</div>
             <KV l="Current Price" v={`₹${r.current_price}`} b />
+            {/* <KV l="Date" v={r.price_date} /> */}
             <KV l="52W High" v={pl['52_week_high'] ? `₹${pl['52_week_high']}` : null} />
             <KV l="52W Low" v={pl['52_week_low'] ? `₹${pl['52_week_low']}` : null} />
             <KV l="Support" v={pl.support ? `₹${pl.support}` : null} />
@@ -888,6 +679,25 @@ export default function SignalUI() {
             <KV l="Signal Line" v={ti.macd?.signal_line} />
             <KV l="Histogram" v={ti.macd?.histogram} />
             <KV l="Trend" v={ti.trend} b />
+          </div>
+
+          {/* Analysis Scores */}
+          <div style={S.section}>
+            <div style={S.secTitle}>🎯 Analysis Scores</div>
+            <KV l="Technical" v={sc.technical ? `${sc.technical}/10` : null} />
+            <KV l="Fundamental" v={sc.fundamental ? `${sc.fundamental}/10` : null} />
+            <KV l="Sentiment" v={sc.sentiment ? `${sc.sentiment}/10` : null} />
+            <KV l="Total Score" v={sc.total ? `${sc.total}/30` : null} b />
+          </div>
+
+          {/* Trade Setup */}
+          <div style={S.section}>
+            <div style={S.secTitle}>⚖️ Trade Setup</div>
+            <KV l="Entry Zone" v={ts.entry_zone} />
+            <KV l="Target 1" v={ts.target_1 ? `₹${ts.target_1}` : null} />
+            <KV l="Target 2" v={ts.target_2 ? `₹${ts.target_2}` : null} />
+            <KV l="Stop Loss" v={ts.stop_loss ? `₹${ts.stop_loss}` : null} />
+            <KV l="Risk/Reward" v={ts.risk_reward_ratio ? `${ts.risk_reward_ratio}:1` : null} b />
           </div>
 
           {/* Position Sizing */}
@@ -908,18 +718,6 @@ export default function SignalUI() {
 
   return (
     <div style={S.container}>
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.01);
-          }
-        }
-      `}</style>
-
       {/* Header */}
       <div style={S.header}>
         <h1 style={S.h1}>📈 Stock Signal Generator</h1>
@@ -994,6 +792,8 @@ export default function SignalUI() {
             {valErr && <div style={S.err}>{valErr}</div>}
           </div>
 
+
+
           {/* Time Horizon */}
           <div>
             <label style={S.label}>Time Horizon</label>
@@ -1014,14 +814,15 @@ export default function SignalUI() {
             </select>
           </div>
           
-          {/* Format Selection */}
-          <div>
-            <label style={S.label}>Format</label>
-            <select style={S.select} value={format} onChange={(e) => setFormat(e.target.value)}>
-              <option>Detailed</option>
-              <option>Compact</option>
-            </select>
+	    {/* Format Selection */}
+	    <div>
+	      <label style={S.label}>Format</label>
+	      <select style={S.select} value={format} onChange={(e) => setFormat(e.target.value)}>
+		<option>Detailed</option>
+		<option>Compact</option>
+	      </select>
           </div>
+          
         </div>
 
         {/* Submit Button */}
