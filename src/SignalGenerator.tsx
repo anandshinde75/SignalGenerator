@@ -721,7 +721,7 @@ export default function SignalUI() {
       {/* Header */}
       <div style={S.header}>
         <h1 style={S.h1}>📈 Stock Signal Generator</h1>
-        <div style={S.subtitle}>AI-Powered NSE/BSE Stock Analysis</div>
+        <div style={S.subtitle}>AI-Powered NSE Stock Analysis</div>
       </div>
 
       {/* Collapsible Disclaimer */}
@@ -798,9 +798,9 @@ export default function SignalUI() {
           <div>
             <label style={S.label}>Time Horizon</label>
             <select style={S.select} value={timeH} onChange={(e) => setTimeH(e.target.value)}>
-              <option>Short-term</option>
-              <option>Medium-term</option>
-              <option>Long-term</option>
+              <option>Short-term 1-4 weeks</option>
+              <option>Medium-term 1-3 months</option>
+              <option>Long-term 3-12 months</option>
             </select>
           </div>
 
