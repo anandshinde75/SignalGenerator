@@ -1049,7 +1049,7 @@ export default function SignalUI() {
       {loading && (
         <div style={{ ...S.card, textAlign: 'center', padding: 32 }}>
           <div style={{ fontSize: 28 }}>⏳</div>
-          <div style={{ color: '#065f46', marginTop: 8 }}>Calling n8n webhook...</div>
+          <div style={{ color: '#065f46', marginTop: 8 }}>Doing Technical, Fundamental and Sentimental analysis...</div>
         </div>
       )}
 
